@@ -1,0 +1,532 @@
+Cpts360 Midterm
+Chapter 2
++1. what's cc? (steps and what each step does)
+	gcc is a program, which consists of three major steps, for ex: gcc t1.c t2.c is 
+	shown in
+	
+	cc:		step1			step2			step3
+	t1.c-> compiler->t1.s->assembler->t1.o->---------
+										    |linker |->a.out
+											|       |
+    t2.c-> compiler->t2.s->assembler->t2.o->--------- 
+    
+    Step 1. Convert C source files to assembly code files: The first step of cc is to 
+    invoke the C COMPILER, which translates .c files into .s files containing assembly
+    code of the target machine. 
+    
+    Step 2. Convert assembly Code to OBJECT code: The second step of cc is to invoke 
+    the ASSEMBLER to translate .s files to .o files.Each .o file consists of:
+    . a header containing sizes of CODE, DATA and BSS sections
+    . a CODE section containing machine instructions
+	. a DATA section containing initialized global and initialized static local 
+	variables
+	. a BSS section containing uninitialized global and uninitialized static local 
+	variables 
+	. relocation information for pointers in CODE and offsets in DATA and 
+	BSS
+	. a Symbol Table containing non-static globals, function names and their attributes.
+	
+	Step 3: LINKING: A program may consist of several .o files, which are dependent on 
+	one another. In addition, the .o files may call C library functions, e.g. printf(),
+	which are not present in the source files. The last step of cc is to invoke the 
+	LINKER, which combines all the .o files and the needed library functions into a 
+	single binary executable file. More specifically, the LINKER does the following:
+	. Combine all the CODE sections of the .o files into a single Code section. For C 
+	programs, the combined Code section begins with the default C startup code crt0.o, 
+	which calls main(). This is why every C program must have a unique main() function.
+	. Combine all the DATA sections into a single Data section. The combined Data 
+	section contains only initialized globals and initialized static locals.
+	. Combine all the BSS sections into a single bss section.
+	. Use the relocation information in the .o files to adjust pointers in the combined
+	Code section and offsets in the combined Data and bss sections.
+	. Use the Symbol Tables to resolve cross references among the individual .o files.
+	
+	Since static globals are not in the symbol table, they are unavailable to the 
+	linker. Any attempt to reference static globals from different files will generate
+	a cross reference error. 
+	
+	contents of a.out file: |<-header|code|data->|
+
+	
++2. Given a C program, which is run as   a.out this is a test
+        int g;
+        int h = 1;
+
+        main(int argc, char *argv[]) |     int A( int x, ......)
+        {                            |     {                            
+           int a,b,c;                |        int u,v;
+           a = 2;                    |
+           b = 3;                    |     HERE:       
+           c = A(a,b,"hello");       |
+        }                            |     }
+
+   (1). Complete the function heading of A(....)
+   		int A(int x, int y, char str[])
+   (2). Which variables are global? which are local? 
+   		g and h are global, a,b,c,u,v are local  
+   (3). Which variables are in a.out?
+   		h//only initialized globals in a.out since a.out does not include automatic or bss
+   (4). Execution is at HERE:  DRAW A DIAGRAM TO Show 
+        the stack contents from HERE to main()'s argc and argv.
+        PC(IP):point to the next instruction to be executed
+        SP: point to top of stack
+        FP(FB): point to stack frame of current active function
+        Return Value Register(AX): register for function return Value
+        
+    (+) high argv  argc    a b c          str    y x       u v		low(-)
+	    |xxxx|??|??|PC|FP|5|2|3|?|temps|"hello"|3|2|PC|FP|?|?|temps|
+								       |<-    stack frame of A   ->|
+								       
+		exact location of v: 
+					
++3. LAB1:
+   A disk has 4 partitions, each is a struct partition{.......}
+   Partition structs are in the MBR at byte offset 0x1BE.   
+   A disk (floppy disk, hard disk, USB drive, SD cards, etc.) consists of 512-byte
+   sectors, which are counted linearly as sector 0,1,2,....
+   A disk is usually divided into several partitions. The partitions are recorded 
+   in a partition table at the beginning (the 0th sector) of the disk, called the 
+   Master Boot Record (MBR). Inside the MBR, the partition table begins at the
+   byte offset 0x1BE.
+   f a partition is EXTEND type (type=5), the partition's area may be further 
+   divided into more partitions.
+   The first sector of each extended partition is a localMBR. Each localMBR has a
+   partition table which contains only 2 entries. The first entry defines the start
+   sector and size of the extended partition. The second entry points to the next
+   localMBR. All the localMBR's sector numbers are relative to P4's start sector.
+   As usual, the link list ends with a 0.
+   +Write C code to print the start_sector and nr_sectors of Partition #3
+
+			Int fd;
+			Char buf[512];
+			Struct partition p1;
+			Fd = open(“vdisk”, O_RDONLY);
+			read(fd, buf, 512);
+			memcpy(&p1, &buf[3*16]+0x1be, 16)
+			printf(“start_sector=%d \n nr_sectors = %d\n”,p1.start_sector, 
+						p1.nr_sectors);
+
+
+ Given: printu(unsigned int x), which prints an UNSIGNED integer.
+ +Write C code to print a SIGNED integer (which may be negative).
+ 
+ 		Int printd(int x)
+		{
+			BASE= 10;
+			if(x<0){
+				putchar(‘-’);
+				x = -x;
+			}
+			printu(x);
+		}
+
+
+ YOUR myprintf(char *fmt, ...) is written as
+      {
+          char *cp; 
+          int  *ip;
+          ..........
+      }
+ which may be called as 
+
+      myprintf("abc %c xyz %s any %d thing %x\n", a,b,c,d);
+
++(1). Write C code to let cp point to the fmt string       _____________
+	cp=fmt;
++(2). Write C code to let ip point to the first parameter a _______________
+	va_list arg; //is used to declare a variable that will refer to each argumrnt in turn
+	va_start(arg, fmt);//va_start makes the pointer ap point to the first argument
+	ip=va_arg(arg, int);//now ip points to the first argument
+	
+	Int *ip = &fmt+1;
+	
++(3). HOW do you print each of the items a,b,c,d?
+
+	ival=va_arg(arg, int);
+	if (ival<0){
+	
+		putchar('-');
+		ival=-1*ival;
+	}
+	printu(ival);
+	
+	a, use putchar
+	b, severeal putchars
+	c, we will use printd() which I wrote above
+	d, we will use printx() which changes the base to 16 and then does a printu
+
+
+
++4. LAB2:
+
+   +Write C statements to define a struct containing
+
+     name      : an array of 32 chars
+     key       : an integer
+     child     : pointer to the first child node
+     sibling   : pointer to the next sibling node
+     parent    : pointer to the parent node
+
+	typedef struct node
+	{
+		char name[32];
+		int key;
+		struct node* child;
+		struct node* sibling;
+		struct node* parent;
+	}
+
+A tree is implemented as a BINARY tree by the child and sibling pointers.
+
++Assume: struct node *p  points at a node A.
+        Write C code to search for a child node of A by name: 
+        return a pointer to the child node if found; return NULL if not.
+        
+        NODE* search_child(NODE *parent, char *name)
+		{
+			NODE *p;
+			P = parent->child;
+			if(p==0){
+				printf(“No children of parent node”);
+				Return 0;
+			}
+			while(p){
+				if(strcmp(p->name, name) ==0){
+					Return p;
+				}
+				Else{
+					P = p->sibling;
+				}
+			}
+			Return 0;
+		}
+
+
+        struct node *q  points at a new node.
+        Write C code to add q as the LAST child of A, which may not have child.
+        
+        	Int insert_child(NODE *parent, NODE *q){
+				NODE *p = parent->child;
+				if(p==0){
+					parent->child = q;
+				}
+				Else{
+					while(p->sibling){
+						P = p->sibling;
+					}
+					p->sibling = q;
+				}
+				q->parent = parent;
+				q->child = 0;
+				q->sibling = 0;
+				Return 0;
+			}
+
+
+        struct node *q  points at a child node of A.
+        Write C code to DELETE q from the chilren list of A
+        
+        	Int delete_child(NODE *parent, NODE *q)
+			{
+				NODE *p = parent->child;
+				NODE *temp;
+				if(p ==0){
+					Return -1; //error
+				}
+				if(strcmp(p->name, q->name)==0){
+					parent->child = q->sibling;
+					q = 0;
+					Return 1; //success
+				}
+				Else{
+					while(p){
+						Temp = p;
+						P = p->sibling;
+						if(strcmp(p->name, q->name)==0){
+							temp->sibling = p->sibling;
+							P = 0;
+							Return 1; //success
+						}
+					}
+					Return -1; //error
+				}
+			}
+
+        
+
++Given:
+                           0     1     2    3   4    5     6    7 
+int (*fptr[ ])(char *) = {menu, mkdir,rmdir,ls, cd, pwd, creat, rm};
+
+Write C code to call the function  create(char *pathname)
+
+	Here, variable fptr is an array of 8 function pointers.
+	All these 8 functions accept a character pointer as the input and return an 
+	integer.
+	int rc = fptr[6](pathname);
+	Here, pathname is a pointer to a character array, which is passing into the 
+	function.rc is an integer variable to receive return value from creat() function.
+
+5. LAB3: 
+   Given: PATH=/bin:/usr/bin: .... :/usr/locl/bin:./
+  + Write C code to tokenize PATH into separate dir strings
+   
+   	int main(void) {
+
+        char PATH[100] = "/bin:/usr/bin:/user/chegg/folder:/usr/local/bin:./";
+
+        char tokens[100][100];
+        int numTokens = 0;
+
+        char *p = PATH;
+        char *t = strchr(p, ':');
+        while(t != NULL) {
+                *t = '\0';
+                strcpy(tokens[numTokens++], p);
+                p = t + 1;
+                t = strchr(p, ':');
+        }
+        strcpy(tokens[numTokens++], p);
+
+        for(int i=0; i<numTokens; i++) {
+                printf("%s\n", tokens[i]);
+        }
+        
+        return 0;
+}
+
+
+   +What does   int pid = fork()    do? 
+   after fork(); HOW TO TELL whether it's the parent or the child executing?
+   
+   	System call fork() is used to create processes. It takes no arguments and returns 
+   	a process ID. The purpose of fork() is to create a new process, which becomes the 
+   	child process of the caller. After a new child process is created, both processes 
+   	will execute the next instruction following the fork() system call. Therefore, we 
+   	have to distinguish the parent from the child. This can be done by testing the 
+   	returned value of fork():
+
+	If fork() returns a negative value, the creation of a child process was 
+	unsuccessful.
+	fork() returns a zero to the newly created child process.
+
+   +What does   int wait(int *status)  do?
+   
+   	-A call to wait() blocks the calling process until one of its child processes exits
+   	or a signal is received. After child process terminates, parent continues its 
+   	execution after wait system call instruction.
+	Child process may terminate due to any of these:
+
+	It calls exit();
+	It returns (an int) from main
+	It receives a signal (from the OS or another process) whose default action is to 
+	terminate.
+	
+	-The wait() system call suspends execution of the current process until one of its
+    children terminates.
+
+   +What does  int   r = execve("pathname", argv, env);    do?
+   
+   		execve() does not return on success, and the text, data, bss, and stack of the
+   		calling process are overwritten by that of the program loaded. The program 
+   		invoked inherits the calling process’s PID, and any open file descriptors that
+   		are not set to close-on-exec. Signals pending on the calling process are 
+   		cleared. Any signals set to be caught by the calling process are reset to 
+   		their default behaviour.
+   		On success, execve() does not return, on error -1 is returned, and errno is 
+   		set appropriately.
+ 
+   Assume the Linux cat is in /bin directory.
+   When running YOUR sh with  cat file1 file2 file3 > outfile
+    
+   +Write C code to do output redirection > 
+   For the above commnad line  cat file1 file2 fie3 > outfile, YOUR sh calls
+
+      r = execve("pathname", myargv, env);
+      
+      
+      How does it do the > symbol?
+
+            // Replace stdout with Outfile
+            close(1);
+            open("Outfile", O_WRONLY | O_CREAT, 0644);
+
+   What's pathanme? ______________________________________________
+   +Draw a diagram to show exactly what's myargv________________________
+   
+   		argv
+            |
+            v
+            | &char | &char | &char | &char |
+              |       |       |       |
+              v       v       v       v
+             "cat" "file1"   "file2"    "file3"
+ 
+   +What's the value of r?  ____________
+   
+   		R is the exit code of what execve calls
+		Nothing if it works, exit code if it fails
+
+
+   +Write C code to do pipe in the command line
+           cat filename | grep line
+           
+           int pd[2];
+           pipe(pd);
+           int pid=fork();
+           if (pid<0){exit(0);}
+           else if (pid==0){//child
+           	close(1);
+           	close(pd[0]);
+           	dup(pd[0]);
+           	close(pd[0]);
+           	execve("/bin/cat", {"cat", "filename", NULL}, env);
+           }
+           else{//parent
+           	close(0);
+           	close(pd[1]);
+           	dup(pd[1]);
+           	close(pd[1]);
+           	execve("/bin/grep", {"grep", "line", NULL}, env);
+           }
+
++6. FILE Operations:
+
+    
+    Given char buf[1024]; HOW MANY bits are in buf[ ]? //int buf[1024] bits=1024*4*8
+    int BIT = 0 to 8191
+    	number of bits=1024*8=8192 bits
+   
+    int i = BIT / 8; int j = BIT % 8; // BECAUSE 8 bits per CHAR
+
+    test  BIT for 0 or 1: if (buf[i] & (1 << j))
+    set   BIT to  1       :   buf[i] |= (1 << j);
+    clear BIT to  0       :   buf[i] &= ~(1 << j);
+    
+    +Write C code to TEST bit 1234 in buf[ ] is 1 or 0:_______________________
+    
+    	i=1234/8=154
+    	j=1234%8=2
+    	if(buf[154]&(1<<2))
+
+    +Write C code to SET  bit 1234 in buf[ ] to 1:    _______________________
+    
+    	i=154, j=2
+    	buf[154]|=(1<<2)
+    
+
+    +Relationship betwee   open,  close, read  write
+                         fopen  fclose fread  fwrite
+                         
+    	Syscalls cause the process to enter Kernel mode and then back to User mode.
+    	Switching between Umode and Kmode takes a lot of actions (and time). 
+    	Data transfer between Kmode and Umode is especially "expensive"
+
+    Given: struct stat myst.  myst.st_mode, myst.st_atime
+
+    +Write C code to get information of a filename:
+    
+    		Struct stat *buf;
+			Int fd = stat(“filename”,buf)
+
+
+    +Write C code to determine whether filename is a REGular file or a DIRectory.
+    
+    	if(myst->st_mode & 0x4000)//if dir
+    	
+		In the stat struct of a file, the 16 bits of st_mode=|TYPE|sss|rwxrwxrwx|
+        where TYPE=0100 if it's a Directory
+        
+        if(S_ISREG(m) == 1)
+			It’s a regular file
+		Else if(S_ISDIR(m) == 1)
+			It’s’ a directory
+
+        
+        
+    +Write C code to test whether
+            the file is Writeable by Others:____________________________
+            			S_IWOTH
+                        Readable  by Others:____________________________
+                        S_IROTH
+		
+    
+    +Write C code to print the file's access time in CALENDAR form.
+    
+    	puts(ctime(&sb.st_ctime));
+
+    +Write C code to print the names of all entries in the current directory.
+    
+    	struct dirent *ep;
+            DIR *dp = opendir(filename);
+
+            while(ep = readdir(dp))
+                puts(ep->d_name);
+
+            closedir(dp);
+
+    +Fill in blanks for OPEN a file for read mode:
+    _______ fd = open("file", _______);
+    	int fd = open("file", O_RDONLY);
+    _______ fp = fopen("file", _______); 
+    	FILE *fp = fopen("file", "r");
+    	
+    	1) fopen is a library function while open is a system call.
+		2) fopen provides buffered IO which is faster compare to open which is non 
+		buffered.
+		The fopen() function returns a pointer to a FILE structure type that can be 
+		used to access the open file.
+
+     +char buf[4096];
+(a). Write C code to read 4K bytes into buf[] using fd: ______________________
+
+	for(int i = 0; i<1000; i++){
+		read(fd, &buf[i], 1);}
+
+	
+(b). Write C code to read 4K bytes into buf[] using fp: ______________________
+
+    for(int i=0; i<1000; i++){
+   	fread(&buf[i],1,1,fp);}
+
+
+
++Which of (a) and (b) will run faster? WHY? __________________________________
+    b is going to run faster since fread provides buffering IO. Buffers usually makes 
+    software faster because copying data in memory is much faster than reading it from 
+    disk
+
+	Syscalls cause the process to enter Kernel mode and then back to User mode.
+    Switching between Umode and Kmode takes a lot of actions (and time). 
+    Data transfer between Kmode and Umode is especially "expensive"
+    
+    
+  +Use system calls to display the contents of a file:______________________
+  
+	int main(int argc, char *argv[]){
+		Int fd;
+		Int i, n;
+		Char buf[4096];
+		if(argc < 2) exit(1);
+		fd = open(argv[1], O_RDONLY);
+		if(fd < 0) exit(2);
+		while(n= read(fd, buf, 4096){
+			for(i=0; i<n; i++){
+				write(1, &buf[i], 1);
+			}
+		}
+	}
+
+
+  +Use Library I/O functions to dispaly the contents of a file:_____________ 
+  
+  int main(int argc, char *argv[]){
+	FILE *fp;
+	Int c;
+	if(argc < 2) exit(1);
+	fp = fopen(argv[1], “r”);
+	if(fp ==0) exit(2);
+	while((c = fgetc(fp)) != eof){
+		putchar(c);
+	}
+  }
