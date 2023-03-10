@@ -1,0 +1,6 @@
+ls
+ls -l
+cat file
+ls
+ls -l
+cat file
