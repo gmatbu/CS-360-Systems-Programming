@@ -1,0 +1,1 @@
+scp $1 ates@cs360.eecs.wsu.edu:~/public_html/cgi-bin/$1
